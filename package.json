@@ -1,0 +1,10 @@
+{
+  "name": "io.ambidexter.firebase.plugin",
+  "displayName": "Firebase plugin",
+  "version": "1.0.0-SNAPSHOT",
+  "unity": "2019.3",
+  "description": "Firebase plugin to interact with firebase from Unity",
+  "dependencies": {
+    
+  }
+}
