@@ -80,8 +80,6 @@ namespace Plugins.FirebasePlugin.Editor
         
 #pragma warning restore 649
 
-        
-#if UNITY_EDITOR
         private const string ManagerPath = "Assets/Scripts/Common/Manager";
 
         [MenuItem("Firebase Plugin/Credentials Settings")]
@@ -250,6 +248,5 @@ namespace Plugins.FirebasePlugin.Editor
 
             return instance;
         }
-#endif
     }
 }
