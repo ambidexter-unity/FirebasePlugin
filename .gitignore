@@ -4,6 +4,9 @@
 [Bb]uild/
 [Bb]uilds/
 Assets/AssetStoreTools*
+# This should always be ignored to prevent from google credentials being public
+Assets/Scripts/Common/Manager/Credentials.asset
+Assets/Scripts/Common/Manager/Credentials.asset.meta
 
 # Visual Studio cache directory
 .vs/
