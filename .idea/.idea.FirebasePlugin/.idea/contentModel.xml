@@ -7,15 +7,15 @@
           <e p="FirebasePlugin" t="Include">
             <e p="Editor" t="Include">
               <e p="Credentials.cs" t="Include" />
-              <e p="io.ambidexter.firebase.plugin.editor.asmdef" t="Include" />
               <e p="RenameAttribute.cs" t="Include" />
               <e p="RenameEditor.cs" t="Include" />
             </e>
+            <e p="io.ambidexter.firebase.asmdef" t="Include" />
           </e>
         </e>
       </e>
       <e p="FirebasePlugin.sln" t="IncludeFlat" />
-      <e p="io.ambidexter.firebase.plugin.editor.csproj" t="IncludeRecursive" />
+      <e p="io.ambidexter.firebase.csproj" t="IncludeRecursive" />
       <e p="obj" t="ExcludeRecursive" />
       <e p="Packages" t="ExcludeRecursive" />
       <e p="Temp/bin" t="ExcludeRecursive" />
