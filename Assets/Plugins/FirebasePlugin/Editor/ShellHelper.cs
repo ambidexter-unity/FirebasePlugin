@@ -2,13 +2,14 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
 public class ShellHelper 
 {
-	private static string macOsLauncher = "sh ./Assets/Plugins/FirebasePlugin/Editor/idea.bash";
 	private static string winLauncher = "if exist c:\autoexec.bat notepad c:\autoexec.bat";
 	
 	[MenuItem("Firebase Plugin/Run Server IDE")]
@@ -16,10 +17,13 @@ public class ShellHelper
 	{
 		string cmd = "";
 		
+		string ideaBashFilePath = Directory.GetFiles(".", "idea.bash", SearchOption.AllDirectories).First();
+
 #if UNITY_EDITOR_WIN
+		throw new NotImplementedException("Not supporting windows yet");
 		cmd = winLauncher;
 #elif UNITY_EDITOR_OSX
-		cmd = macOsLauncher;
+		cmd = $"sh {ideaBashFilePath}";
 #endif
 		
 		ShellRequest req = ProcessCMD(cmd, ".");
