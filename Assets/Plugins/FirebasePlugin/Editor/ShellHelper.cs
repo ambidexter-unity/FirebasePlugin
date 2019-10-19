@@ -12,20 +12,42 @@ public class ShellHelper
 {
 	private static string winLauncher = "if exist c:\autoexec.bat notepad c:\autoexec.bat";
 	
-	[MenuItem("Firebase Plugin/Run Server IDE")]
+	[MenuItem("Firebase Plugin/Open server in IntelliJ")]
 	private static void LaunchIdeaExternally()
+	{
+		string ideaBashFilePath;
+
+#if UNITY_EDITOR_WIN
+		cmd = winLauncher;
+#elif UNITY_EDITOR_OSX
+		ideaBashFilePath = Directory.GetFiles(".", "idea.bash", SearchOption.AllDirectories).First();
+#endif
+		LaunchCommandFile(ideaBashFilePath);
+	}
+	
+	[MenuItem("Firebase Plugin/Open server in Rider")]
+	private static void LaunchRiderExternally()
+	{
+		string riderBashFilePath;
+
+#if UNITY_EDITOR_WIN
+		cmd = winLauncher;
+#elif UNITY_EDITOR_OSX
+		riderBashFilePath = Directory.GetFiles(".", "rider.bash", SearchOption.AllDirectories).First();
+#endif
+		LaunchCommandFile(riderBashFilePath);
+	}
+
+	private static void LaunchCommandFile(string filePath)
 	{
 		string cmd = "";
 		
-		string ideaBashFilePath = Directory.GetFiles(".", "idea.bash", SearchOption.AllDirectories).First();
-
 #if UNITY_EDITOR_WIN
 		throw new NotImplementedException("Not supporting windows yet");
 		cmd = winLauncher;
 #elif UNITY_EDITOR_OSX
-		cmd = $"sh {ideaBashFilePath}";
+		cmd = $"sh {filePath}";
 #endif
-		
 		ShellRequest req = ProcessCMD(cmd, ".");
 
 		req.onLog += debug;
