@@ -20,25 +20,25 @@ public class ShellHelper
 #if UNITY_EDITOR_WIN
 		cmd = winLauncher;
 #elif UNITY_EDITOR_OSX
-		ideaBashFilePath = Directory.GetFiles(".", "idea.bash", SearchOption.AllDirectories).First();
+		ideaBashFilePath = GetFilePath("idea");
 #endif
-		LaunchCommandFile(ideaBashFilePath);
+		LaunchExternalFile(ideaBashFilePath);
 	}
 	
-	[MenuItem("Firebase Plugin/Open server in Rider")]
-	private static void LaunchRiderExternally()
+	[MenuItem("Firebase Plugin/Deploy server")]
+	private static void Deploy()
 	{
-		string riderBashFilePath;
+		string gcloudBashFilePath;
 
 #if UNITY_EDITOR_WIN
 		cmd = winLauncher;
 #elif UNITY_EDITOR_OSX
-		riderBashFilePath = Directory.GetFiles(".", "rider.bash", SearchOption.AllDirectories).First();
+		gcloudBashFilePath = GetFilePath("gcloud_run");
 #endif
-		LaunchCommandFile(riderBashFilePath);
+		LaunchExternalFile(gcloudBashFilePath);
 	}
 
-	private static void LaunchCommandFile(string filePath)
+	private static void LaunchExternalFile(string filePath)
 	{
 		string cmd = "";
 		
@@ -52,6 +52,17 @@ public class ShellHelper
 
 		req.onLog += debug;
 	}
+
+	private static string GetFilePath(string name)
+	{
+#if UNITY_EDITOR_WIN
+		name = name;
+#elif UNITY_EDITOR_OSX
+		name = $"{name}.bash";
+#endif
+		return Directory.GetFiles(".", name, SearchOption.AllDirectories).First();
+	}
+	
 
 	private static void debug(int code, string output)
 	{
