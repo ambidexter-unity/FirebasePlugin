@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using Plugins.FirebasePlugin.Editor;
 using UnityEditor;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
@@ -26,8 +27,15 @@ public class ShellHelper
 	}
 	
 	[MenuItem("Firebase Plugin/Deploy server")]
-	private static void Deploy()
+	private static async void Deploy()
 	{
+		bool validate = await Credentials.Validate();
+            
+		if (!validate)
+			return;
+		
+		Credentials credentials = Credentials.FindCredentialsAsset();
+		
 		string gcloudBashFilePath;
 
 #if UNITY_EDITOR_WIN
@@ -35,18 +43,21 @@ public class ShellHelper
 #elif UNITY_EDITOR_OSX
 		gcloudBashFilePath = GetFilePath("gcloud_run");
 #endif
-		LaunchExternalFile(gcloudBashFilePath);
+		LaunchExternalFile(gcloudBashFilePath, new[] {$"{Path.Combine(credentials.GoogleSDKPath, "bin/gcloud")}"});
 	}
 
-	private static void LaunchExternalFile(string filePath)
+	private static void LaunchExternalFile(string filePath, string[] args = null)
 	{
 		string cmd = "";
+
+		if (args is null)
+			args = new string[0];
 		
 #if UNITY_EDITOR_WIN
 		throw new NotImplementedException("Not supporting windows yet");
 		cmd = winLauncher;
 #elif UNITY_EDITOR_OSX
-		cmd = $"sh {filePath}";
+		cmd = $"sh {filePath} {string.Join(" ", args)}";
 #endif
 		ShellRequest req = ProcessCMD(cmd, ".");
 
@@ -80,11 +91,6 @@ public class ShellHelper
 			if (onLog != null)
 			{
 				onLog(type, log);
-			}
-
-			if (type == 1)
-			{
-				UnityEngine.Debug.LogError(log);
 			}
 		}
 

@@ -20,7 +20,10 @@ namespace Plugins.FirebasePlugin.Editor
         {
             JsonProperty property = base.CreateProperty(member, memberSerialization);
 
-            if (property.PropertyName == "hideFlags" || property.PropertyName == "name")
+            if (property.PropertyName == "hideFlags" 
+                || property.PropertyName == "name" 
+                || property.PropertyName == "GoogleSDKPath"
+                )
             {
                 property.Ignored = true;
             }
@@ -77,6 +80,10 @@ namespace Plugins.FirebasePlugin.Editor
         [Rename("Client Cert URL"), SerializeField]
         private string client_x509_cert_url;
             
+        [Rename("Google Cloud SDK path"), SerializeField]
+        private string googl_cloud_sdk;
+
+        public string GoogleSDKPath => googl_cloud_sdk;
         
 #pragma warning restore 649
 
@@ -100,7 +107,7 @@ namespace Plugins.FirebasePlugin.Editor
             Debug.Log("Successfully connected to Firebase Firestore");
         }
         
-        private static async Task<bool> Validate()
+        public static async Task<bool> Validate()
         {
             if (!ValidateCredentialsAssetExist())
                 return false;
@@ -218,7 +225,7 @@ namespace Plugins.FirebasePlugin.Editor
             return true;
         }
 
-        private static Credentials FindCredentialsAsset()
+        public static Credentials FindCredentialsAsset()
         {
             Credentials instance = null;
             AssetDatabase.FindAssets($"t:{typeof(Credentials).FullName}").Any(guid =>
