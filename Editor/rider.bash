@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-FILE=/usr/local/bin/idea
+FILE=/usr/local/bin/rider
 echo "PATH is $PATH"
 if [ -f "$FILE" ]; then
     if [[ ":$PATH:" == *":$FILE:"* ]]; then
@@ -10,6 +10,6 @@ if [ -f "$FILE" ]; then
     fi
 else 
     echo "$FILE does not exist"
-    echo "In the IntelliJ IDEA main menu, choose Tools | Create Command-line Launcher. In the Create Launcher Script dialog accept the suggested values '/usr/local/bin/idea'"
+    echo "In the Rider main menu, choose Tools | Create Command-line Launcher. In the Create Launcher Script dialog accept the suggested values '/usr/local/bin/rider'"
     exit 1
 fi
