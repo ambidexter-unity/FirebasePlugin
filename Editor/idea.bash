@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 FILE=/usr/local/bin/idea
-echo "PATH is $PATH"
 if [ -f "$FILE" ]; then
     if [[ ":$PATH:" == *":$FILE:"* ]]; then
-      $FILE ./Assets/Server~/src/main/java/io/ambidexter/firebase/Main.java:3
+      $FILE ./Assets/Server~
     else
       export PATH=$PATH:$FILE
-      $FILE ./Assets/Server~/src/main/java/io/ambidexter/firebase/Main.java:3
+      $FILE ./Assets/Server~
     fi
 else 
     echo "$FILE does not exist"
