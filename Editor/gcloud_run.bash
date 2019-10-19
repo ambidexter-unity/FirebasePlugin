@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
+echo "Starting to deploy... Please wait... "
 cd ./Assets/Server~
-gcloud builds submit --tag gcr.io/coinseast/server
-gcloud beta run deploy --image gcr.io/coinseast/server --platform managed
-server
-europe-west1
-y
+$1 builds submit --tag gcr.io/coinseast/server
+$1 beta run deploy --image gcr.io/coinseast/server --platform managed --region europe-west1 --allow-unauthenticated server
+echo "Deployment complete"
+exit 0
