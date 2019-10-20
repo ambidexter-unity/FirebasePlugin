@@ -77,7 +77,16 @@ public class ShellHelper
 
 	private static void debug(int code, string output)
 	{
-		Debug.Log(output);
+		
+
+		if (output.Contains("ERROR"))
+		{
+			Debug.LogError(output);
+		}
+		else
+		{
+			Debug.Log(output);
+		}
 	}
 	
 	public class ShellRequest
