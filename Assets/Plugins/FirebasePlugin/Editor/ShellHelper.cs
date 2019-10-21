@@ -19,7 +19,7 @@ public class ShellHelper
 		string ideaBashFilePath;
 
 #if UNITY_EDITOR_WIN
-		cmd = winLauncher;
+		ideaBashFilePath = winLauncher;
 #elif UNITY_EDITOR_OSX
 		ideaBashFilePath = GetFilePath("idea");
 #endif
