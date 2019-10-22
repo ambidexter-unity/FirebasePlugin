@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿#if UNITY_EDITOR
+using UnityEngine;
  
 public class RenameAttribute : PropertyAttribute
 {
@@ -8,3 +9,4 @@ public class RenameAttribute : PropertyAttribute
         NewName = name ;
     }
 }
+#endif
