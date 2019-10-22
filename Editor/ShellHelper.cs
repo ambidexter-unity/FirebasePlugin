@@ -40,7 +40,7 @@ public class ShellHelper
 		string gcloudBashFilePath;
 
 #if UNITY_EDITOR_WIN
-		cmd = winLauncher;
+        gcloudBashFilePath = winLauncher;
 #elif UNITY_EDITOR_OSX
 		gcloudBashFilePath = GetFilePath("gcloud_run");
 #endif
