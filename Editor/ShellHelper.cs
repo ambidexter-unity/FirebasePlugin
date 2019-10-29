@@ -12,19 +12,10 @@ using Debug = UnityEngine.Debug;
 
 public class ShellHelper 
 {
-	private static string winLauncher = "if exist c:\autoexec.bat notepad c:\autoexec.bat";
-	
 	[MenuItem("Firebase Plugin/Open server in IntelliJ")]
 	private static void LaunchIdeaExternally()
 	{
-		string ideaBashFilePath;
-
-#if UNITY_EDITOR_WIN
-		ideaBashFilePath = winLauncher;
-#elif UNITY_EDITOR_OSX
-		ideaBashFilePath = GetFilePath("idea");
-#endif
-		LaunchExternalFile(ideaBashFilePath);
+		LaunchExternalFile(GetFilePath("idea"));	
 	}
 	
 	[MenuItem("Firebase Plugin/Deploy server")]
@@ -37,14 +28,17 @@ public class ShellHelper
 		
 		Credentials credentials = Credentials.FindCredentialsAsset();
 		
-		string gcloudBashFilePath;
+		string gcloudBashFilePath = GetFilePath("gcloud_run");
+
+		string arg;
 
 #if UNITY_EDITOR_WIN
-        gcloudBashFilePath = winLauncher;
+		arg = $"\"{Path.Combine(credentials.GoogleSDKPath, "google-cloud-sdk\\bin\\gcloud")}\"";
 #elif UNITY_EDITOR_OSX
-		gcloudBashFilePath = GetFilePath("gcloud_run");
+		arg = $"{Path.Combine(credentials.GoogleSDKPath, "bin/gcloud")}";
 #endif
-		LaunchExternalFile(gcloudBashFilePath, new[] {$"{Path.Combine(credentials.GoogleSDKPath, "bin/gcloud")}"});
+
+		LaunchExternalFile(gcloudBashFilePath, new[] {arg});
 	}
 
 	private static void LaunchExternalFile(string filePath, string[] args = null)
@@ -55,8 +49,7 @@ public class ShellHelper
 			args = new string[0];
 		
 #if UNITY_EDITOR_WIN
-		throw new NotImplementedException("Not supporting windows yet");
-		cmd = winLauncher;
+		cmd = $"{filePath} {string.Join(" ", args)}";
 #elif UNITY_EDITOR_OSX
 		cmd = $"sh {filePath} {string.Join(" ", args)}";
 #endif
@@ -68,7 +61,7 @@ public class ShellHelper
 	private static string GetFilePath(string name)
 	{
 #if UNITY_EDITOR_WIN
-		name = name;
+		name = $"{name}.cmd";
 #elif UNITY_EDITOR_OSX
 		name = $"{name}.bash";
 #endif
