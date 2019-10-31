@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if UNITY_EDITOR
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -11,22 +12,63 @@ using Debug = UnityEngine.Debug;
 
 public class ShellHelper 
 {
-	private static string winLauncher = "if exist c:\autoexec.bat notepad c:\autoexec.bat";
-	
 	[MenuItem("Firebase Plugin/Open server in IntelliJ")]
 	private static void LaunchIdeaExternally()
 	{
-		string ideaBashFilePath;
-
-#if UNITY_EDITOR_WIN
-		ideaBashFilePath = winLauncher;
-#elif UNITY_EDITOR_OSX
-		ideaBashFilePath = GetFilePath("idea");
-#endif
-		LaunchExternalFile(ideaBashFilePath);
+		LaunchExternalFile(GetFilePath("idea"));	
 	}
 	
-	[MenuItem("Firebase Plugin/Deploy server")]
+	[MenuItem("Firebase Plugin/Deploy local docker container")]
+	private static async void DeployLocally()
+	{
+		DestroyLocal();
+
+		bool validate = await Credentials.Validate();
+            
+		if (!validate)
+			return;
+		
+		Credentials credentials = Credentials.FindCredentialsAsset();
+		
+		string gcloudBashFilePath = GetFilePath("local_run");
+
+		string arg;
+
+#if UNITY_EDITOR_WIN
+		arg = $"\"{Path.Combine(credentials.GoogleSDKPath, "google-cloud-sdk\\bin\\gcloud")}\"";
+#elif UNITY_EDITOR_OSX
+		arg = $"{Path.Combine(credentials.GoogleSDKPath, "bin/gcloud")}";
+#endif
+
+		ShellRequest req = LaunchExternalFile(gcloudBashFilePath, new[] {arg});
+	}
+
+	[MenuItem("Firebase Plugin/Destroy all local docker containers")]
+	private static async void DestroyLocal()
+	{
+		bool validate = await Credentials.Validate();
+            
+		if (!validate)
+			return;
+		
+		Credentials credentials = Credentials.FindCredentialsAsset();
+		
+		string gcloudBashFilePath = GetFilePath("local_stop");
+
+		string arg;
+
+#if UNITY_EDITOR_WIN
+		arg = $"\"{Path.Combine(credentials.GoogleSDKPath, "google-cloud-sdk\\bin\\gcloud")}\"";
+#elif UNITY_EDITOR_OSX
+		arg = $"{Path.Combine(credentials.GoogleSDKPath, "bin/gcloud")}";
+#endif
+
+		ShellRequest req = LaunchExternalFile(gcloudBashFilePath, new[] {arg});
+        
+	}
+
+
+	[MenuItem("Firebase Plugin/Deploy docker container to server")]
 	private static async void Deploy()
 	{
 		bool validate = await Credentials.Validate();
@@ -36,17 +78,20 @@ public class ShellHelper
 		
 		Credentials credentials = Credentials.FindCredentialsAsset();
 		
-		string gcloudBashFilePath;
+		string gcloudBashFilePath = GetFilePath("gcloud_run");
+
+		string arg;
 
 #if UNITY_EDITOR_WIN
-		cmd = winLauncher;
+		arg = $"\"{Path.Combine(credentials.GoogleSDKPath, "google-cloud-sdk\\bin\\gcloud")}\"";
 #elif UNITY_EDITOR_OSX
-		gcloudBashFilePath = GetFilePath("gcloud_run");
+		arg = $"{Path.Combine(credentials.GoogleSDKPath, "bin/gcloud")}";
 #endif
-		LaunchExternalFile(gcloudBashFilePath, new[] {$"{Path.Combine(credentials.GoogleSDKPath, "bin/gcloud")}"});
+
+		LaunchExternalFile(gcloudBashFilePath, new[] {arg});
 	}
 
-	private static void LaunchExternalFile(string filePath, string[] args = null)
+	private static ShellRequest LaunchExternalFile(string filePath, string[] args = null)
 	{
 		string cmd = "";
 
@@ -54,20 +99,21 @@ public class ShellHelper
 			args = new string[0];
 		
 #if UNITY_EDITOR_WIN
-		throw new NotImplementedException("Not supporting windows yet");
-		cmd = winLauncher;
+		cmd = $"{filePath} {string.Join(" ", args)}";
 #elif UNITY_EDITOR_OSX
 		cmd = $"sh {filePath} {string.Join(" ", args)}";
 #endif
 		ShellRequest req = ProcessCMD(cmd, ".");
 
 		req.onLog += debug;
+
+		return req;
 	}
 
 	private static string GetFilePath(string name)
 	{
 #if UNITY_EDITOR_WIN
-		name = name;
+		name = $"{name}.cmd";
 #elif UNITY_EDITOR_OSX
 		name = $"{name}.bash";
 #endif
@@ -91,6 +137,7 @@ public class ShellHelper
 	
 	public class ShellRequest
 	{
+		public int procID;
 		public event System.Action<int, string> onLog;
 		public event System.Action onError;
 		public event System.Action onDone;
@@ -194,6 +241,7 @@ public class ShellHelper
 				}
 
 				start.Arguments += (" \"" + cmd + " \"");
+				start.LoadUserProfile = true;
 				start.CreateNoWindow = true;
 				start.ErrorDialog = true;
 				start.UseShellExecute = false;
@@ -215,6 +263,9 @@ public class ShellHelper
 				}
 
 				p = Process.Start(start);
+
+				req.procID = p.Id;
+
 				p.ErrorDataReceived += delegate(object sender, DataReceivedEventArgs e)
 				{
 					UnityEngine.Debug.LogError(e.Data);
@@ -302,3 +353,4 @@ public class ShellHelper
 		return ShellHelper.ProcessCommand(cmd, workDir, _enviroumentVars);
 	}
 }
+#endif
