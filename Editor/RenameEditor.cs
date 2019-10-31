@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿#if UNITY_EDITOR
+using UnityEngine;
 using UnityEditor;
  
 [CustomPropertyDrawer(typeof(RenameAttribute))]
@@ -9,3 +10,4 @@ public class RenameEditor : PropertyDrawer
         EditorGUI.PropertyField(position, property, new GUIContent( (attribute as RenameAttribute).NewName ));
     }
 }
+#endif
