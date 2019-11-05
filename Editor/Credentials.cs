@@ -167,14 +167,27 @@ namespace Plugins.FirebasePlugin.Editor
             string credentialsJson = JsonConvert.SerializeObject(credentials, Formatting.Indented,
                 new JsonSerializerSettings { ContractResolver = new ShouldSerializeContractResolver() });
 
-            var filePath = Path.Combine(Application.temporaryCachePath, JSON_FILENAME);
+            var filePathTmp = Path.Combine(Application.temporaryCachePath, JSON_FILENAME);
+            var filePathServer = Path.Combine(Application.dataPath, "Server~/src/main/resources", JSON_FILENAME);
+
             try
             {
-                File.WriteAllText(filePath, credentialsJson.Replace("\\\\", "\\"));
+                File.WriteAllText(filePathTmp, credentialsJson.Replace("\\\\", "\\"));
             }
             catch (Exception e)
             {
-                Debug.LogError($"Could not write file to {filePath}. ");
+                Debug.LogError($"Could not write file to {filePathTmp}. ");
+                Debug.LogError(e.Message);
+                return false;
+            }
+
+            try
+            {
+                File.WriteAllText(filePathServer, credentialsJson.Replace("\\\\", "\\"));
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Could not write file to {filePathServer}. ");
                 Debug.LogError(e.Message);
                 return false;
             }
