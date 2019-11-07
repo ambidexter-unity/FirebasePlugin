@@ -39,6 +39,7 @@ namespace Plugins.FirebasePlugin.Editor
         private const string GOOGLE_CREDENTIAL_VAR_NAME = "GOOGLE_APPLICATION_CREDENTIALS";
 
         private const string JSON_FILENAME = "tmp.json";
+        private const string SERVER_SETTINGS_FILENAME = "config.properties";
         
 #pragma warning disable 649
         [JsonProperty]
@@ -48,6 +49,8 @@ namespace Plugins.FirebasePlugin.Editor
         [JsonProperty]
         [Rename("Project ID"), SerializeField]
         private string project_id;
+
+        public string ProjectId => project_id;
         
         [JsonProperty]
         [Rename("Private key ID"), SerializeField]
@@ -130,6 +133,34 @@ namespace Plugins.FirebasePlugin.Editor
             return true;
 
         }
+
+        public static bool CreateServerProperties(bool isLocal)
+        {
+            Credentials credentials = FindCredentialsAsset();
+            
+            string credentialsJson = JsonConvert.SerializeObject(credentials, Formatting.Indented,
+                new JsonSerializerSettings { ContractResolver = new ShouldSerializeContractResolver() });
+
+            string serverSettings = $"host.local={isLocal}{System.Environment.NewLine}" +
+                                    $"host.credentials={JSON_FILENAME}{System.Environment.NewLine}" +
+                                    $"host.projectId={credentials.ProjectId}";
+
+            var filePathServerCredentials = Path.Combine(Application.dataPath, "Server~/src/main/resources", JSON_FILENAME);
+            var filePathServerSettings = Path.Combine(Application.dataPath, "Server~/src/main/resources", SERVER_SETTINGS_FILENAME);
+
+            try
+            {
+                File.WriteAllText(filePathServerCredentials, credentialsJson.Replace("\\\\", "\\"));
+                File.WriteAllText(filePathServerSettings, serverSettings);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError(e.Message);
+                return false;
+            }
+
+            return true;
+        }
         
         private static bool ValidateCredentialsAssetExist()
         {
@@ -168,7 +199,6 @@ namespace Plugins.FirebasePlugin.Editor
                 new JsonSerializerSettings { ContractResolver = new ShouldSerializeContractResolver() });
 
             var filePathTmp = Path.Combine(Application.temporaryCachePath, JSON_FILENAME);
-            var filePathServer = Path.Combine(Application.dataPath, "Server~/src/main/resources", JSON_FILENAME);
 
             try
             {
@@ -176,18 +206,6 @@ namespace Plugins.FirebasePlugin.Editor
             }
             catch (Exception e)
             {
-                Debug.LogError($"Could not write file to {filePathTmp}. ");
-                Debug.LogError(e.Message);
-                return false;
-            }
-
-            try
-            {
-                File.WriteAllText(filePathServer, credentialsJson.Replace("\\\\", "\\"));
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Could not write file to {filePathServer}. ");
                 Debug.LogError(e.Message);
                 return false;
             }
@@ -263,7 +281,7 @@ namespace Plugins.FirebasePlugin.Editor
 
             if (!System.IO.Directory.Exists(ManagerPath))
                 System.IO.Directory.CreateDirectory(ManagerPath);
-			
+            
             AssetDatabase.CreateAsset(instance, $"{ManagerPath}/{typeof(Credentials).Name}.asset");
             AssetDatabase.SaveAssets();
 

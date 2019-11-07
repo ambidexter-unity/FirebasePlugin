@@ -27,20 +27,28 @@ public class ShellHelper
             
 		if (!validate)
 			return;
+
+		bool createSettings = Credentials.CreateServerProperties(true);
+
+		if (!createSettings)
+			return;
 		
 		Credentials credentials = Credentials.FindCredentialsAsset();
-		
+
 		string gcloudBashFilePath = GetFilePath("local_run");
 
-		string arg;
+		string arg1;
+		string arg2;
 
 #if UNITY_EDITOR_WIN
-		arg = $"\"{Path.Combine(credentials.GoogleSDKPath, "google-cloud-sdk\\bin\\gcloud")}\"";
+		arg1 = $"\"{Path.Combine(credentials.GoogleSDKPath, "google-cloud-sdk\\bin\\gcloud")}\"";
+		arg2 = $"{credentials.ProjectId}";
 #elif UNITY_EDITOR_OSX
-		arg = $"{Path.Combine(credentials.GoogleSDKPath, "bin/gcloud")}";
+		arg1 = $"{Path.Combine(credentials.GoogleSDKPath, "bin/gcloud")}";
+		arg2 = $"{credentials.ProjectId}";
 #endif
 
-		ShellRequest req = LaunchExternalFile(gcloudBashFilePath, new[] {arg});
+		ShellRequest req = LaunchExternalFile(gcloudBashFilePath, new[] {arg1, arg2});
 	}
 
 	[MenuItem("Firebase Plugin/Destroy all local docker containers")]
@@ -75,20 +83,28 @@ public class ShellHelper
             
 		if (!validate)
 			return;
+
+		bool createSettings = Credentials.CreateServerProperties(false);
+
+		if (!createSettings)
+			return;
 		
 		Credentials credentials = Credentials.FindCredentialsAsset();
 		
 		string gcloudBashFilePath = GetFilePath("gcloud_run");
 
-		string arg;
+		string arg1;
+		string arg2;
 
 #if UNITY_EDITOR_WIN
-		arg = $"\"{Path.Combine(credentials.GoogleSDKPath, "google-cloud-sdk\\bin\\gcloud")}\"";
+		arg1 = $"\"{Path.Combine(credentials.GoogleSDKPath, "google-cloud-sdk\\bin\\gcloud")}\"";
+		arg2 = $"{credentials.ProjectId}";
 #elif UNITY_EDITOR_OSX
-		arg = $"{Path.Combine(credentials.GoogleSDKPath, "bin/gcloud")}";
+		arg1 = $"{Path.Combine(credentials.GoogleSDKPath, "bin/gcloud")}";
+		arg2 = $"{credentials.ProjectId}";
 #endif
 
-		LaunchExternalFile(gcloudBashFilePath, new[] {arg});
+		LaunchExternalFile(gcloudBashFilePath, new[] {arg1, arg2});
 	}
 
 	private static ShellRequest LaunchExternalFile(string filePath, string[] args = null)
