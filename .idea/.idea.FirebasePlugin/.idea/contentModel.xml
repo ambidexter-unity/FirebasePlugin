@@ -33,7 +33,7 @@
         <e p="Plugins" t="Include">
           <e p="FirebasePlugin" t="Include">
             <e p="Editor" t="Include">
-              <e p="Credentials.cs" t="Include" />
+              <e p="CredentialList.cs" t="Include" />
               <e p="RenameAttribute.cs" t="Include" />
               <e p="RenameEditor.cs" t="Include" />
               <e p="ShellHelper.cs" t="Include" />

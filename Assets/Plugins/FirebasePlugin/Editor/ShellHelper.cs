@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Plugins.FirebasePlugin.Editor;
 using UnityEditor;
 using UnityEngine;
@@ -17,25 +18,41 @@ public class ShellHelper
 	{
 		LaunchExternalFile(GetFilePath("idea"));	
 	}
-	
-	[MenuItem("Firebase Plugin/Deploy local docker container")]
-	private static async void DeployLocally()
-	{
-		DestroyLocal();
 
-		bool validate = await Credentials.Validate();
+	[MenuItem("Firebase Plugin/Deploy development docker container locally")]
+	private static async Task DeployDevelopmentLocally()
+	{
+		await Deploy(new ServerProperties {IsLocal = true, IsProduction = false}, LOCAL_RUN_FILENAME);
+	}
+	
+	
+	[MenuItem("Firebase Plugin/Deploy production docker container to gcloud")]
+	private static async Task DeployProductionGcloud()
+	{
+		await Deploy(new ServerProperties {IsLocal = false, IsProduction = true}, GCLOUD_RUN_FILENAME);
+	}
+	
+	[MenuItem("Firebase Plugin/Deploy development docker container to gcloud")]
+	private static async Task DeployDevelopmentGcloud()
+	{
+		await Deploy(new ServerProperties {IsLocal = false, IsProduction = false}, GCLOUD_RUN_FILENAME);
+	}
+	
+	private static async Task Deploy(ServerProperties properties, string filename)
+	{
+		await DestroyAll();
+
+		bool validate = await CredentialList.Validate(properties);
             
 		if (!validate)
 			return;
 
-		bool createSettings = Credentials.CreateServerProperties(true);
+		bool createSettings = CredentialList.CreateServerPropertiesFile(properties);
 
 		if (!createSettings)
 			return;
 		
-		Credentials credentials = Credentials.FindCredentialsAsset();
-
-		string gcloudBashFilePath = GetFilePath("local_run");
+		CredentialList credentialList = CredentialList.FindCredentialsAsset();
 
 		string arg1;
 		string arg2;
@@ -44,22 +61,28 @@ public class ShellHelper
 		arg1 = $"\"{Path.Combine(credentials.GoogleSDKPath, "google-cloud-sdk\\bin\\gcloud")}\"";
 		arg2 = $"{credentials.ProjectId}";
 #elif UNITY_EDITOR_OSX
-		arg1 = $"{Path.Combine(credentials.GoogleSDKPath, "bin/gcloud")}";
-		arg2 = $"{credentials.ProjectId}";
+		arg1 = $"{Path.Combine(credentialList.GoogleSDKPath, "bin/gcloud")}";
+		arg2 = $"{CredentialList.GetProjectId(properties, credentialList)}";
 #endif
 
-		ShellRequest req = LaunchExternalFile(gcloudBashFilePath, new[] {arg1, arg2});
+		LaunchExternalFile(GetFilePath(filename), new[] {arg1, arg2});
 	}
 
 	[MenuItem("Firebase Plugin/Destroy all local docker containers")]
-	private static async void DestroyLocal()
+	private static async Task DestroyAll()
 	{
-		bool validate = await Credentials.Validate();
+		await Destroy(new ServerProperties {IsLocal = true, IsProduction = false});
+		await Destroy(new ServerProperties {IsLocal = true, IsProduction = true});
+	}
+
+	private static async Task Destroy(ServerProperties properties)
+	{
+		bool validate = await CredentialList.Validate(properties);
             
 		if (!validate)
 			return;
 		
-		Credentials credentials = Credentials.FindCredentialsAsset();
+		CredentialList credentialList = CredentialList.FindCredentialsAsset();
 		
 		string gcloudBashFilePath = GetFilePath("local_stop");
 
@@ -68,43 +91,10 @@ public class ShellHelper
 #if UNITY_EDITOR_WIN
 		arg = $"\"{Path.Combine(credentials.GoogleSDKPath, "google-cloud-sdk\\bin\\gcloud")}\"";
 #elif UNITY_EDITOR_OSX
-		arg = $"{Path.Combine(credentials.GoogleSDKPath, "bin/gcloud")}";
+		arg = $"{Path.Combine(credentialList.GoogleSDKPath, "bin/gcloud")}";
 #endif
 
 		ShellRequest req = LaunchExternalFile(gcloudBashFilePath, new[] {arg});
-        
-	}
-
-
-	[MenuItem("Firebase Plugin/Deploy docker container to server")]
-	private static async void Deploy()
-	{
-		bool validate = await Credentials.Validate();
-            
-		if (!validate)
-			return;
-
-		bool createSettings = Credentials.CreateServerProperties(false);
-
-		if (!createSettings)
-			return;
-		
-		Credentials credentials = Credentials.FindCredentialsAsset();
-		
-		string gcloudBashFilePath = GetFilePath("gcloud_run");
-
-		string arg1;
-		string arg2;
-
-#if UNITY_EDITOR_WIN
-		arg1 = $"\"{Path.Combine(credentials.GoogleSDKPath, "google-cloud-sdk\\bin\\gcloud")}\"";
-		arg2 = $"{credentials.ProjectId}";
-#elif UNITY_EDITOR_OSX
-		arg1 = $"{Path.Combine(credentials.GoogleSDKPath, "bin/gcloud")}";
-		arg2 = $"{credentials.ProjectId}";
-#endif
-
-		LaunchExternalFile(gcloudBashFilePath, new[] {arg1, arg2});
 	}
 
 	private static ShellRequest LaunchExternalFile(string filePath, string[] args = null)
@@ -368,5 +358,8 @@ public class ShellHelper
 	{
 		return ShellHelper.ProcessCommand(cmd, workDir, _enviroumentVars);
 	}
+
+	private const string GCLOUD_RUN_FILENAME = "gcloud_run";
+	private const string LOCAL_RUN_FILENAME = "local_run";
 }
 #endif

@@ -33,15 +33,10 @@ namespace Plugins.FirebasePlugin.Editor
             return property;
         }
     }
-    
-    public class Credentials : ScriptableObject
-    {
-        private const string GOOGLE_CREDENTIAL_VAR_NAME = "GOOGLE_APPLICATION_CREDENTIALS";
 
-        private const string JSON_FILENAME = "tmp.json";
-        private const string SERVER_SETTINGS_FILENAME = "config.properties";
-        
-#pragma warning disable 649
+    [Serializable]
+    public struct Credentials
+    {
         [JsonProperty]
         [Rename("Type"), SerializeField]
         private string type;
@@ -83,6 +78,30 @@ namespace Plugins.FirebasePlugin.Editor
         [JsonProperty]
         [Rename("Client Cert URL"), SerializeField]
         private string client_x509_cert_url;
+    }
+
+    public class ServerProperties
+    {
+        public bool IsLocal { get; set; }
+        
+        public bool IsProduction { get; set; }
+    }
+    
+    [Serializable]
+    public class CredentialList : ScriptableObject
+    {
+        private const string GOOGLE_CREDENTIAL_VAR_NAME = "GOOGLE_APPLICATION_CREDENTIALS";
+
+        private const string JSON_FILENAME_PROD = "tmp_prod.json";
+        private const string JSON_FILENAME_DEV = "tmp_dev.json";
+        private const string SERVER_SETTINGS_FILENAME = "config.properties";
+        
+#pragma warning disable 649
+
+        [SerializeField]
+        private Credentials prodCredentials;
+        [SerializeField]
+        private Credentials devCredentials;
             
         [Rename("Google Cloud SDK path"), SerializeField]
         private string googl_cloud_sdk;
@@ -101,9 +120,9 @@ namespace Plugins.FirebasePlugin.Editor
         }
         
         [MenuItem("Firebase Plugin/Connect to Firestore")]
-        private static async void TestFirestoreConnection()
+        private static async void TestFirestoreProdConnection()
         {
-            bool validate = await Validate();
+            bool validate = await Validate(new ServerProperties{IsLocal = false, IsProduction = true});
             
             if (!validate)
                 return;
@@ -111,7 +130,18 @@ namespace Plugins.FirebasePlugin.Editor
             Debug.Log("Successfully connected to Firebase Firestore");
         }
         
-        public static async Task<bool> Validate()
+        [MenuItem("Firebase Plugin/Connect to Development Firestore")]
+        private static async void TestFirestoreDevConnection()
+        {
+            bool validate = await Validate(new ServerProperties{IsLocal = false, IsProduction = false});
+            
+            if (!validate)
+                return;
+
+            Debug.Log("Successfully connected to Firebase Firestore");
+        }
+        
+        public static async Task<bool> Validate(ServerProperties properties)
         {
             if (!ValidateCredentialsAssetExist())
                 return false;
@@ -119,13 +149,13 @@ namespace Plugins.FirebasePlugin.Editor
             if (!ValidateCredentialsNotEmpty())
                 return false;
             
-            if (!ValidateJsonFileExist())
+            if (!ValidateJsonFileExist(properties))
                 return false;
 
-            if (!ValidateEnvironmentVariableIsSet())
+            if (!ValidateEnvironmentVariableIsSet(properties))
                 return false;
 
-            bool conn = await ValidateConnectionToFirestore();
+            bool conn = await ValidateConnectionToFirestore(properties);
             
             if (!conn)
                 return false;
@@ -134,18 +164,21 @@ namespace Plugins.FirebasePlugin.Editor
 
         }
 
-        public static bool CreateServerProperties(bool isLocal)
+        public static bool CreateServerPropertiesFile(ServerProperties properties)
         {
-            Credentials credentials = FindCredentialsAsset();
+            CredentialList credentialList = FindCredentialsAsset();
             
-            string credentialsJson = JsonConvert.SerializeObject(credentials, Formatting.Indented,
+            string credentialsJson = JsonConvert.SerializeObject(credentialList, Formatting.Indented,
                 new JsonSerializerSettings { ContractResolver = new ShouldSerializeContractResolver() });
 
-            string serverSettings = $"host.local={isLocal}{System.Environment.NewLine}" +
-                                    $"host.credentials={JSON_FILENAME}{System.Environment.NewLine}" +
-                                    $"host.projectId={credentials.ProjectId}";
+            string serverSettings = $"host.local={properties.IsLocal}{System.Environment.NewLine}" +
+                                    $"host.production={properties.IsProduction}{System.Environment.NewLine}" +
+                                    $"host.prod.credentials={JSON_FILENAME_PROD}{System.Environment.NewLine}" +
+                                    $"host.prod.projectId={GetProjectId(true, credentialList)}" + 
+                                    $"host.dev.credentials={JSON_FILENAME_DEV}{System.Environment.NewLine}" +
+                                    $"host.dev.projectId={GetProjectId(false, credentialList)}";
 
-            var filePathServerCredentials = Path.Combine(Application.dataPath, "Server~/src/main/resources", JSON_FILENAME);
+            var filePathServerCredentials = Path.Combine(Application.dataPath, "Server~/src/main/resources", GetJsonFilename(properties));
             var filePathServerSettings = Path.Combine(Application.dataPath, "Server~/src/main/resources", SERVER_SETTINGS_FILENAME);
 
             try
@@ -161,7 +194,21 @@ namespace Plugins.FirebasePlugin.Editor
 
             return true;
         }
+
+        private static string GetJsonFilename(ServerProperties properties)
+        {
+            return properties.IsProduction ? JSON_FILENAME_PROD : JSON_FILENAME_DEV;
+        }
         
+        public static string GetProjectId(ServerProperties properties, CredentialList credentialList)
+        {
+            return GetProjectId(properties.IsProduction, credentialList);
+        }
+
+        private static string GetProjectId(bool isProd, CredentialList credentialList)
+        {
+            return isProd ? credentialList.prodCredentials.ProjectId : credentialList.devCredentials.ProjectId;
+        }
         private static bool ValidateCredentialsAssetExist()
         {
             bool credentialsExist = FindCredentialsAsset() != null;
@@ -174,13 +221,13 @@ namespace Plugins.FirebasePlugin.Editor
         
         private static bool ValidateCredentialsNotEmpty()
         {
-            Credentials credentials = FindCredentialsAsset();
+            CredentialList credentialList = FindCredentialsAsset();
             
-            foreach(FieldInfo fi in credentials.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Instance))
+            foreach(FieldInfo fi in credentialList.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Instance))
             {
                 if(fi.FieldType == typeof(string))
                 {
-                    string value = (string)fi.GetValue(credentials);
+                    string value = (string)fi.GetValue(credentialList);
                     if(string.IsNullOrEmpty(value))
                     {
                         Debug.LogError($"'FirebasePlugin/CredentialsSettings' {fi.Name} is empty");
@@ -191,14 +238,14 @@ namespace Plugins.FirebasePlugin.Editor
             return true;
         }
 
-        private static bool ValidateJsonFileExist()
+        private static bool ValidateJsonFileExist(ServerProperties properties)
         {
-            Credentials credentials = FindCredentialsAsset();
+            CredentialList credentialList = FindCredentialsAsset();
             
-            string credentialsJson = JsonConvert.SerializeObject(credentials, Formatting.Indented,
+            string credentialsJson = JsonConvert.SerializeObject(credentialList, Formatting.Indented,
                 new JsonSerializerSettings { ContractResolver = new ShouldSerializeContractResolver() });
 
-            var filePathTmp = Path.Combine(Application.temporaryCachePath, JSON_FILENAME);
+            var filePathTmp = Path.Combine(Application.temporaryCachePath, GetJsonFilename(properties));
 
             try
             {
@@ -213,9 +260,9 @@ namespace Plugins.FirebasePlugin.Editor
             return true;
         }
         
-        private static bool ValidateEnvironmentVariableIsSet()
+        private static bool ValidateEnvironmentVariableIsSet(ServerProperties properties)
         {
-            Environment.SetEnvironmentVariable(GOOGLE_CREDENTIAL_VAR_NAME, Path.Combine(Application.temporaryCachePath, JSON_FILENAME));
+            Environment.SetEnvironmentVariable(GOOGLE_CREDENTIAL_VAR_NAME, Path.Combine(Application.temporaryCachePath, GetJsonFilename(properties)));
 
             if (String.IsNullOrEmpty(Environment.GetEnvironmentVariable(GOOGLE_CREDENTIAL_VAR_NAME)))
             {
@@ -225,13 +272,13 @@ namespace Plugins.FirebasePlugin.Editor
             return true;
         }
         
-        private static async Task<bool> ValidateConnectionToFirestore()
+        private static async Task<bool> ValidateConnectionToFirestore(ServerProperties properties)
         {
             string collectionName = "Test_firestore_collection";
             string docName = "Test_firestore_document";
-            Credentials credentials = FindCredentialsAsset();
+            CredentialList credentialList = FindCredentialsAsset();
 
-            FirestoreDb db = FirestoreDb.Create(credentials.project_id);
+            FirestoreDb db = FirestoreDb.Create(GetProjectId(properties, credentialList));
 
             // Create a document with a random ID in the "Test_firestore_collection" collection.
             CollectionReference collection = db.Collection(collectionName);
@@ -257,32 +304,32 @@ namespace Plugins.FirebasePlugin.Editor
             return true;
         }
 
-        public static Credentials FindCredentialsAsset()
+        public static CredentialList FindCredentialsAsset()
         {
-            Credentials instance = null;
-            AssetDatabase.FindAssets($"t:{typeof(Credentials).FullName}").Any(guid =>
+            CredentialList instance = null;
+            AssetDatabase.FindAssets($"t:{typeof(CredentialList).FullName}").Any(guid =>
             {
                 var path = AssetDatabase.GUIDToAssetPath(guid);
-                instance = AssetDatabase.LoadAssetAtPath<Credentials>(path);
+                instance = AssetDatabase.LoadAssetAtPath<CredentialList>(path);
                 return true;
                 
             });
             return instance;
         }
         
-        private static Credentials FindOrCreateNewScriptableObject()
+        private static CredentialList FindOrCreateNewScriptableObject()
         {
-            Credentials instance = FindCredentialsAsset();
+            CredentialList instance = FindCredentialsAsset();
 
             if (instance != null)
                 return instance;
 
-            instance = ScriptableObject.CreateInstance<Credentials>();
+            instance = ScriptableObject.CreateInstance<CredentialList>();
 
             if (!System.IO.Directory.Exists(ManagerPath))
                 System.IO.Directory.CreateDirectory(ManagerPath);
             
-            AssetDatabase.CreateAsset(instance, $"{ManagerPath}/{typeof(Credentials).Name}.asset");
+            AssetDatabase.CreateAsset(instance, $"{ManagerPath}/{typeof(CredentialList).Name}.asset");
             AssetDatabase.SaveAssets();
 
             return instance;
