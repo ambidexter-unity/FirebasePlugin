@@ -1,3 +1,6 @@
+
+using Google.Cloud.Firestore.V1;
+using Object = System.Object;
 #if UNITY_EDITOR
 using System;
 using System.IO;
@@ -119,7 +122,7 @@ namespace Plugins.FirebasePlugin.Editor
             Selection.activeObject = FindOrCreateNewScriptableObject();
         }
         
-        [MenuItem("Firebase Plugin/Connect to Firestore")]
+        [MenuItem("Firebase Plugin/Connect to Production Firestore")]
         private static async void TestFirestoreProdConnection()
         {
             bool validate = await Validate(new ServerProperties{IsLocal = false, IsProduction = true});
@@ -167,14 +170,17 @@ namespace Plugins.FirebasePlugin.Editor
         public static bool CreateServerPropertiesFile(ServerProperties properties)
         {
             CredentialList credentialList = FindCredentialsAsset();
+
+            Credentials credentials =
+                properties.IsProduction ? credentialList.prodCredentials : credentialList.devCredentials;
             
-            string credentialsJson = JsonConvert.SerializeObject(credentialList, Formatting.Indented,
+            string credentialsJson = JsonConvert.SerializeObject(credentials, Formatting.Indented,
                 new JsonSerializerSettings { ContractResolver = new ShouldSerializeContractResolver() });
 
             string serverSettings = $"host.local={properties.IsLocal}{System.Environment.NewLine}" +
                                     $"host.production={properties.IsProduction}{System.Environment.NewLine}" +
                                     $"host.prod.credentials={JSON_FILENAME_PROD}{System.Environment.NewLine}" +
-                                    $"host.prod.projectId={GetProjectId(true, credentialList)}" + 
+                                    $"host.prod.projectId={GetProjectId(true, credentialList)}{System.Environment.NewLine}" + 
                                     $"host.dev.credentials={JSON_FILENAME_DEV}{System.Environment.NewLine}" +
                                     $"host.dev.projectId={GetProjectId(false, credentialList)}";
 
@@ -242,7 +248,10 @@ namespace Plugins.FirebasePlugin.Editor
         {
             CredentialList credentialList = FindCredentialsAsset();
             
-            string credentialsJson = JsonConvert.SerializeObject(credentialList, Formatting.Indented,
+            Credentials credentials =
+                properties.IsProduction ? credentialList.prodCredentials : credentialList.devCredentials;
+            
+            string credentialsJson = JsonConvert.SerializeObject(credentials, Formatting.Indented,
                 new JsonSerializerSettings { ContractResolver = new ShouldSerializeContractResolver() });
 
             var filePathTmp = Path.Combine(Application.temporaryCachePath, GetJsonFilename(properties));
@@ -268,7 +277,7 @@ namespace Plugins.FirebasePlugin.Editor
             {
                 Debug.LogError($"Env. var {GOOGLE_CREDENTIAL_VAR_NAME} could not be found");
                 return false;
-            }
+            }  
             return true;
         }
         
@@ -279,7 +288,7 @@ namespace Plugins.FirebasePlugin.Editor
             CredentialList credentialList = FindCredentialsAsset();
 
             FirestoreDb db = FirestoreDb.Create(GetProjectId(properties, credentialList));
-
+            
             // Create a document with a random ID in the "Test_firestore_collection" collection.
             CollectionReference collection = db.Collection(collectionName);
 

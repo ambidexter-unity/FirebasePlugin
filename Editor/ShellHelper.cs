@@ -40,32 +40,40 @@ public class ShellHelper
 	
 	private static async Task Deploy(ServerProperties properties, string filename)
 	{
-		await DestroyAll();
-
-		bool validate = await CredentialList.Validate(properties);
-            
-		if (!validate)
-			return;
-
-		bool createSettings = CredentialList.CreateServerPropertiesFile(properties);
-
-		if (!createSettings)
-			return;
-		
+//		bool validate = await CredentialList.Validate(properties);
+//            
+//		if (!validate)
+//			return;
+//
+//		bool createSettings = CredentialList.CreateServerPropertiesFile(properties);
+//
+//		if (!createSettings)
+//			return;
+//		
 		CredentialList credentialList = CredentialList.FindCredentialsAsset();
+//
+//		string arg1;
+//		string arg2;
+//
+//#if UNITY_EDITOR_WIN
+//		arg1 = $"\"{Path.Combine(credentials.GoogleSDKPath, "google-cloud-sdk\\bin\\gcloud")}\"";
+//		arg2 = $"{credentials.ProjectId}";
+//#elif UNITY_EDITOR_OSX
+//		arg1 = $"{Path.Combine(credentialList.GoogleSDKPath, "bin/gcloud")}";
+//		arg2 = $"{CredentialList.GetProjectId(properties, credentialList)}";
+//#endif
 
-		string arg1;
-		string arg2;
-
-#if UNITY_EDITOR_WIN
-		arg1 = $"\"{Path.Combine(credentials.GoogleSDKPath, "google-cloud-sdk\\bin\\gcloud")}\"";
-		arg2 = $"{credentials.ProjectId}";
-#elif UNITY_EDITOR_OSX
-		arg1 = $"{Path.Combine(credentialList.GoogleSDKPath, "bin/gcloud")}";
-		arg2 = $"{CredentialList.GetProjectId(properties, credentialList)}";
-#endif
-
-		LaunchExternalFile(GetFilePath(filename), new[] {arg1, arg2});
+		//***
+		//This is commented cause after Production/Development environment implementation
+		//it was not tested properly
+		//***
+		//LaunchExternalFile(GetFilePath(filename), new[] {arg1, arg2});
+		//***
+		//Instead of executing commands below directly in terminal
+		//we are simply printing them out to Unity console
+		//***
+		PrintLaunchCmdFor(CredentialList.GetProjectId(properties, credentialList));
+		
 	}
 
 	[MenuItem("Firebase Plugin/Destroy all local docker containers")]
@@ -97,6 +105,22 @@ public class ShellHelper
 		ShellRequest req = LaunchExternalFile(gcloudBashFilePath, new[] {arg});
 	}
 
+	private static void PrintLaunchCmdFor(string projectId)
+	{
+		Debug.Log("Execute following commands in server directory. Terminal (macOS) or gcloud console (windows):");
+		
+		Debug.LogError("Don't forget to change 'config.properties' file in server's src/main/resources directory");
+
+		Debug.Log($@"
+			Commands are inside:
+			----------------------------
+gcloud init
+gcloud builds submit --tag gcr.io/{projectId}/server
+gcloud beta run deploy --memory=512Mi --image gcr.io/{projectId}/server --platform managed --region europe-west1 --allow-unauthenticated server
+			----------------------------"
+		);
+	}
+	
 	private static ShellRequest LaunchExternalFile(string filePath, string[] args = null)
 	{
 		string cmd = "";
