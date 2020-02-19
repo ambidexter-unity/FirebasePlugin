@@ -1,4 +1,4 @@
-﻿#if UNITY_EDITOR
+#if UNITY_EDITOR
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -97,7 +97,7 @@ public class ShellHelper
 		string arg;
 
 #if UNITY_EDITOR_WIN
-		arg = $"\"{Path.Combine(credentials.GoogleSDKPath, "google-cloud-sdk\\bin\\gcloud")}\"";
+		arg = $"\"{Path.Combine(credentialList.GoogleSDKPath, "google-cloud-sdk\\bin\\gcloud")}\"";
 #elif UNITY_EDITOR_OSX
 		arg = $"{Path.Combine(credentialList.GoogleSDKPath, "bin/gcloud")}";
 #endif
