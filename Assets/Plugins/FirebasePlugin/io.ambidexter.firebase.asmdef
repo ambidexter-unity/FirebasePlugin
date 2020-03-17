@@ -2,9 +2,9 @@
     "name": "io.ambidexter.firebase",
     "references": [],
     "includePlatforms": [
+        "Android",
         "Editor",
         "LinuxStandalone64",
-        "Lumin",
         "macOSStandalone",
         "WindowsStandalone32",
         "WindowsStandalone64"

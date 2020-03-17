@@ -31,7 +31,6 @@ namespace Plugins.FirebasePlugin.Editor
             {
                 property.Ignored = true;
             }
-            
 
             return property;
         }
